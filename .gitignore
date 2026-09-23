@@ -109,6 +109,7 @@ omnivoice_data/
 demo_recording.webp
 cloudflared
 cloudflared.tgz
+bin/cloudflared.exe
 
 # ─────────────────────────────────────────────────────────────────────────
 #  Reference / experiment scratch

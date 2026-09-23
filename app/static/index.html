@@ -253,20 +253,23 @@
       });
 
       filtered.forEach(v => {
-        const isNarration = v.id === "NARRATION_SONGSEAH";
+        const isNarration = v.category === "내레이션" || v.id.startsWith("NARRATION");
+        const isGacrux = v.id === "NARRATION_GACRUX";
+        const isSongSeah = v.id === "NARRATION_SONGSEAH";
         const isVillain = v.role_type === "악역";
         const isGood = v.role_type === "선역";
 
         const card = document.createElement("div");
-        card.className = `p-4 rounded-xl border ${isNarration ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-200' : 'bg-white border-slate-200'} shadow-sm flex flex-col justify-between`;
+        card.className = `p-4 rounded-xl border ${isNarration ? (isGacrux ? 'bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-200' : 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-200') : 'bg-white border-slate-200'} shadow-sm flex flex-col justify-between`;
 
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between mb-2">
-              <span class="font-bold text-sm ${isNarration ? 'text-amber-900 font-extrabold' : 'text-slate-800'} flex items-center gap-1.5">
-                ${isNarration ? '⭐ ' : ''}${v.name}
+              <span class="font-bold text-sm ${isGacrux ? 'text-indigo-900 font-extrabold' : (isSongSeah ? 'text-amber-900 font-extrabold' : 'text-slate-800')} flex items-center gap-1.5">
+                ${isNarration ? (isGacrux ? '✨ ' : '⭐ ') : ''}${v.name}
               </span>
-              <div class="flex gap-1">
+              <div class="flex gap-1 flex-wrap justify-end">
+                ${isGacrux ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Gemini 2.5</span>' : ''}
                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${v.gender === 'female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'}">
                   ${v.gender === 'female' ? '여성' : '남성'}
                 </span>

@@ -96,17 +96,24 @@ def connect_colab(req: ColabConnectRequest):
 
 
 from app.voice_bank import VOICE_BANK, get_voice_by_id
+from app.gemini_tts import generate_gemini_tts
 
 VOICE_BANK_FILE = os.path.join(DATA_DIR, "voice_bank_custom.json")
 
 def load_voice_bank():
+    res = {v["id"]: dict(v) for v in VOICE_BANK}
     if os.path.exists(VOICE_BANK_FILE):
         try:
             with open(VOICE_BANK_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                saved = json.load(f)
+                for item in saved:
+                    if item["id"] in res:
+                        res[item["id"]].update(item)
+                    else:
+                        res[item["id"]] = item
         except Exception:
             pass
-    return list(VOICE_BANK)
+    return list(res.values())
 
 def save_voice_bank(bank_data):
     with open(VOICE_BANK_FILE, "w", encoding="utf-8") as f:
@@ -117,7 +124,7 @@ CURRENT_VOICE_BANK = load_voice_bank()
 
 @app.get("/api/voice-bank")
 def get_voice_bank_list():
-    """21대 전속 성우 목록 반환"""
+    """22대 전속 성우 목록 반환 (송세아 & 가크룩스 포함)"""
     return {"voice_bank": CURRENT_VOICE_BANK}
 
 
@@ -140,8 +147,7 @@ class VoiceTestRequest(BaseModel):
 
 @app.post("/api/voice-bank/test")
 async def test_custom_voice(req: VoiceTestRequest):
-    """대표님이 슬라이더로 조절한 톤을 실시간으로 합성해 미리듣기 제공"""
-    import edge_tts
+    """대표님이 슬라이더로 조절하거나 선택한 성우를 실시간으로 합성해 미리듣기 제공"""
     meta = None
     for v in CURRENT_VOICE_BANK:
         if v["id"] == req.voice_id:
@@ -150,7 +156,19 @@ async def test_custom_voice(req: VoiceTestRequest):
     if not meta:
         meta = CURRENT_VOICE_BANK[0]
 
+    # Gemini 2.5 Flash TTS 엔진 (가크룩스)
+    if meta.get("voice") == "gemini-tts-Gacrux" or req.voice_id == "NARRATION_GACRUX":
+        try:
+            mp3_bytes = generate_gemini_tts(req.text, voice_name="Gacrux")
+            return StreamingResponse(io.BytesIO(mp3_bytes), media_type="audio/mpeg")
+        except Exception as e:
+            print(f"Gemini TTS 합성 실패, edge-tts fallback: {e}")
+
+    # 기본 edge-tts 순수 파라미터 엔진
+    import edge_tts
     voice = meta["voice"]
+    if voice == "gemini-tts-Gacrux":
+        voice = "ko-KR-InJoonNeural"
     comm = edge_tts.Communicate(req.text, voice, rate=req.rate, pitch=req.pitch)
     stream = io.BytesIO()
     async for chunk in comm.stream():
@@ -303,9 +321,20 @@ async def generate_single_audio_file(speaker: str, text: str, output_path: str):
         except Exception as e:
             print(f"Colab 생성 실패, 로컬 감정 모드 전환: {e}")
 
-    # 2. 로컬 무료 모드 (edge-tts 순수 파라미터 직접 저장)
+    # 2. Gemini 2.5 Flash TTS 모드 (가크룩스 내레이션)
+    if speaker_id == "NARRATION_GACRUX" or voice_info.get("voice") == "gemini-tts-Gacrux":
+        try:
+            generate_gemini_tts(text, voice_name="Gacrux", output_path=output_path)
+            return output_path
+        except Exception as e:
+            print(f"Gemini TTS 합성 실패, edge-tts fallback: {e}")
+
+    # 3. 로컬 무료 모드 (edge-tts 순수 파라미터 직접 저장)
     import edge_tts
-    comm = edge_tts.Communicate(text, emotion_cfg["voice"], rate=emotion_cfg["rate"], pitch=emotion_cfg["pitch"], volume=emotion_cfg["volume"])
+    voice = emotion_cfg["voice"]
+    if voice == "gemini-tts-Gacrux":
+        voice = "ko-KR-InJoonNeural"
+    comm = edge_tts.Communicate(text, voice, rate=emotion_cfg["rate"], pitch=emotion_cfg["pitch"], volume=emotion_cfg["volume"])
     await comm.save(output_path)
     return output_path
 
