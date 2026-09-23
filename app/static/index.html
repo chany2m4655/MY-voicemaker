@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>시니어사연 보이스 무료제작기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Pretendard', sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 via-amber-500 to-indigo-600 flex items-center justify-center text-white text-xl shadow-md">
+          <i class="fa-solid fa-microphone-lines"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+            시니어사연 보이스 무료제작기
+            <span class="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-semibold">100% 무료</span>
+          </h1>
+          <p class="text-xs text-slate-500">AI 1인 기업 대표님 전용 유튜브 사연 라디오 오디오북 스튜디오</p>
+        </div>
+      </div>
+
+      <!-- 상단 탭 전환 & 코랩 바 -->
+      <div class="flex items-center space-x-3">
+        <!-- 탭 버튼 -->
+        <nav class="flex space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
+          <button onclick="switchTab('voices')" id="tabBtnVoices" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5">
+            <i class="fa-solid fa-users-viewfinder text-indigo-500"></i> 전속 성우 오디션 뱅크 (21인)
+          </button>
+          <button onclick="switchTab('studio')" id="tabBtnStudio" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-clapperboard text-rose-500"></i> 사연 제작 스튜디오
+          </button>
+        </nav>
+
+        <!-- 코랩 연동 바 -->
+        <div class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
+          <input type="text" id="colabUrlInput" placeholder="코랩 URL (선택)" 
+                 class="bg-transparent text-xs px-2.5 py-1.5 w-44 focus:outline-none text-slate-700">
+          <button onclick="connectColab()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-2.5 py-1.5 rounded-md font-medium transition">
+            연결
+          </button>
+        </div>
+        <div id="colabBadge" class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 font-medium">
+          <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+          <span>로컬 무료</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 전역 공용 오디오 플레이어 (성우 미리듣기용) -->
+  <audio id="globalPreviewPlayer" class="hidden"></audio>
+
+  <!-- 메인 컨테이너 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ============================================================= -->
+    <!-- TAB 1: 전속 성우 오디션 뱅크 (직접 들어보고 수정 및 고정 세팅) -->
+    <!-- ============================================================= -->
+    <section id="voicesTab" class="space-y-6">
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-masks-theater text-indigo-600"></i>
+              21대 전속 성우 라인업 (들어보고 고정 세팅)
+            </h2>
+            <p class="text-sm text-slate-500">
+              메인 내레이션(송세아 1위 라디오 톤) 및 남녀 5개 연령대별 선역과 악역 목소리를 직접 듣고 조율할 수 있습니다.
+            </p>
+          </div>
+          <!-- 연령대 필터 버튼 -->
+          <div class="flex flex-wrap gap-1.5 text-xs font-medium" id="filterButtonGroup">
+            <button onclick="filterVoices('all')" class="filter-btn active px-3 py-1.5 rounded-lg bg-slate-800 text-white">전체 (21명)</button>
+            <button onclick="filterVoices('내레이션')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">⭐ 송세아</button>
+            <button onclick="filterVoices('노년')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">노년 (60~70대)</button>
+            <button onclick="filterVoices('중년')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">중년 (40~50대)</button>
+            <button onclick="filterVoices('청년')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">청년 (20~30대)</button>
+            <button onclick="filterVoices('10대')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">10대 청소년</button>
+            <button onclick="filterVoices('어린이')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">어린이</button>
+          </div>
+        </div>
+
+        <!-- 성우 카드 그리드 -->
+        <div id="voiceBankGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- 동적 렌더링 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- TAB 2: 사연 제작 스튜디오 (대본 업로드, 인물 매칭, 섹션 렌더링) -->
+    <!-- ============================================================= -->
+    <section id="studioTab" class="hidden space-y-8">
+      
+      <!-- 1. 대본 멀티 업로드 -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-up text-rose-500"></i>
+              1단계: 대본 및 시놉시스 업로드
+            </h2>
+            <p class="text-sm text-slate-500">시놉시스(.txt)와 전체 대본(.txt)을 넣으면 자동으로 인물을 파악해 성우와 매칭합니다.</p>
+          </div>
+          <button onclick="loadSampleProject()" class="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg font-semibold transition flex items-center gap-1">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> '추석날 성묘' 샘플 대본 바로 불러오기
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border-2 border-dashed border-slate-300 hover:border-rose-400 rounded-xl p-5 text-center transition cursor-pointer bg-slate-50/50" onclick="document.getElementById('scriptFileInput').click()">
+            <input type="file" id="scriptFileInput" class="hidden" accept=".txt">
+            <i class="fa-solid fa-file-lines text-3xl text-rose-400 mb-2"></i>
+            <h3 class="text-sm font-semibold text-slate-700">전체 대본 파일 (.txt)</h3>
+            <p id="scriptFileName" class="text-xs text-slate-400 mt-1">클릭하거나 파일을 드래그하여 업로드하세요</p>
+          </div>
+          <div class="border-2 border-dashed border-slate-300 hover:border-amber-400 rounded-xl p-5 text-center transition cursor-pointer bg-slate-50/50" onclick="document.getElementById('synopsisFileInput').click()">
+            <input type="file" id="synopsisFileInput" class="hidden" accept=".txt">
+            <i class="fa-solid fa-users-rectangle text-3xl text-amber-400 mb-2"></i>
+            <h3 class="text-sm font-semibold text-slate-700">시놉시스 & 인물 설정 파일 (선택, .txt)</h3>
+            <p id="synopsisFileName" class="text-xs text-slate-400 mt-1">인물 정보가 담긴 시놉시스 파일 업로드</p>
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button onclick="uploadFiles()" class="bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-rose-200 transition flex items-center gap-2">
+            <i class="fa-solid fa-bolt"></i> 자동 인물 매칭 및 섹션 분해 시작
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. 인물별 성우 매칭 및 선택 카드 -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-user-check text-indigo-500"></i>
+              2단계: 대본 인물별 성우 매칭 및 선택
+            </h2>
+            <p class="text-sm text-slate-500">대본의 각 인물에 매칭된 성우입니다. 드롭다운으로 원하는 성우를 즉시 변경할 수 있습니다.</p>
+          </div>
+          <span id="charCountBadge" class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">인물 6명 매칭됨</span>
+        </div>
+
+        <div id="characterGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- 동적 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 3. 섹션별 렌더링 카드 리스트 -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-emerald-500"></i>
+              3단계: 섹션별 MP3 생성 및 타이밍 싱크
+            </h2>
+            <p class="text-sm text-slate-500">MP3 내부에 노래방식 대사 타이밍 싱크(ID3v2 SYLT)가 내장되며, 자막(.srt)이 동시 생성됩니다.</p>
+          </div>
+          <button onclick="generateAllSections()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5">
+            <i class="fa-solid fa-play"></i> 전체 섹션 일괄 생성
+          </button>
+        </div>
+
+        <div class="bg-slate-100 rounded-xl p-4 mb-6 flex items-center justify-between border border-slate-200">
+          <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+            <span id="projectTitle" class="font-bold text-slate-800">제목: 추석날 성묘가서 며느리 앞에서 날 발로 찬 남편...</span>
+          </div>
+          <span id="sectionCountBadge" class="text-xs bg-white text-slate-600 font-bold px-3 py-1 rounded-lg border border-slate-200">총 16개 섹션</span>
+        </div>
+
+        <div id="sectionList" class="space-y-4">
+          <!-- 동적 렌더링 -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    let currentProject = null;
+    let voiceBank = [];
+    let activeVoices = {};
+    let isColabConnected = false;
+    let currentFilter = 'all';
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadVoiceBank();
+      fetchProject();
+      setupFileInputs();
+    });
+
+    function switchTab(tab) {
+      const vTab = document.getElementById("voicesTab");
+      const sTab = document.getElementById("studioTab");
+      const vBtn = document.getElementById("tabBtnVoices");
+      const sBtn = document.getElementById("tabBtnStudio");
+
+      if (tab === 'voices') {
+        vTab.classList.remove("hidden");
+        sTab.classList.add("hidden");
+        vBtn.className = "px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5";
+        sBtn.className = "px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5";
+      } else {
+        sTab.classList.remove("hidden");
+        vTab.classList.add("hidden");
+        sBtn.className = "px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm transition flex items-center gap-1.5";
+        vBtn.className = "px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5";
+      }
+    }
+
+    async function loadVoiceBank() {
+      try {
+        const res = await fetch("/api/voice-bank");
+        const data = await res.json();
+        voiceBank = data.voice_bank;
+        renderVoiceBank();
+      } catch (err) {
+        console.error("성우 뱅크 로드 실패:", err);
+      }
+    }
+
+    function filterVoices(cat) {
+      currentFilter = cat;
+      document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.className = "filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200";
+      });
+      event.target.className = "filter-btn active px-3 py-1.5 rounded-lg bg-slate-800 text-white font-semibold";
+      renderVoiceBank();
+    }
+
+    function renderVoiceBank() {
+      const grid = document.getElementById("voiceBankGrid");
+      grid.innerHTML = "";
+
+      const filtered = voiceBank.filter(v => {
+        if (currentFilter === 'all') return true;
+        return v.category === currentFilter;
+      });
+
+      filtered.forEach(v => {
+        const isNarration = v.id === "NARRATION_SONGSEAH";
+        const isVillain = v.role_type === "악역";
+        const isGood = v.role_type === "선역";
+
+        const card = document.createElement("div");
+        card.className = `p-4 rounded-xl border ${isNarration ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-200' : 'bg-white border-slate-200'} shadow-sm flex flex-col justify-between`;
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-sm ${isNarration ? 'text-amber-900 font-extrabold' : 'text-slate-800'} flex items-center gap-1.5">
+                ${isNarration ? '⭐ ' : ''}${v.name}
+              </span>
+              <div class="flex gap-1">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${v.gender === 'female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'}">
+                  ${v.gender === 'female' ? '여성' : '남성'}
+                </span>
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${isVillain ? 'bg-red-100 text-red-700 font-bold' : (isGood ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800')}">
+                  ${v.role_type}
+                </span>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-500 mb-3">${v.desc}</p>
+
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-3">
+              <span class="text-[10px] font-bold text-slate-400 block mb-1">대표 대사:</span>
+              <p class="text-xs text-slate-700 italic">"${v.sample_text}"</p>
+            </div>
+          </div>
+
+          <div>
+            <!-- 미리듣기 컨트롤 -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+              <button onclick="playVoiceSample('${v.id}')" id="playBtn_${v.id}" class="text-xs ${isNarration ? 'bg-amber-600 hover:bg-amber-700' : (isVillain ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700')} text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-play"></i> 미리듣기
+              </button>
+              <button onclick="toggleTunePanel('${v.id}')" class="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 rounded transition">
+                <i class="fa-solid fa-sliders"></i> 톤 조절
+              </button>
+            </div>
+
+            <!-- 미세 조절 패널 (숨김) -->
+            <div id="tunePanel_${v.id}" class="hidden mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-2">
+              <div>
+                <label class="flex justify-between text-[11px] text-slate-600 mb-0.5">
+                  <span>속도: <b id="rateVal_${v.id}">${v.rate}</b></span>
+                </label>
+                <input type="range" min="-15" max="15" value="${parseInt(v.rate)}" 
+                       oninput="document.getElementById('rateVal_${v.id}').innerText = (this.value >= 0 ? '+' : '') + this.value + '%'"
+                       id="rateInput_${v.id}" class="w-full h-1 bg-slate-200 rounded">
+              </div>
+              <div>
+                <label class="flex justify-between text-[11px] text-slate-600 mb-0.5">
+                  <span>피치: <b id="pitchVal_${v.id}">${v.pitch}</b></span>
+                </label>
+                <input type="range" min="-12" max="12" value="${parseInt(v.pitch)}" 
+                       oninput="document.getElementById('pitchVal_${v.id}').innerText = (this.value >= 0 ? '+' : '') + this.value + 'Hz'"
+                       id="pitchInput_${v.id}" class="w-full h-1 bg-slate-200 rounded">
+              </div>
+              <div class="flex justify-end gap-1.5 pt-1">
+                <button onclick="testCustomTune('${v.id}')" class="bg-white border border-slate-300 text-slate-700 px-2 py-1 rounded text-[11px]">
+                  테스트 재생
+                </button>
+                <button onclick="saveVoiceTune('${v.id}')" class="bg-slate-800 text-white px-2 py-1 rounded text-[11px]">
+                  고정 저장
+                </button>
+              </div>
+            </div>
+
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function playVoiceSample(voiceId) {
+      const player = document.getElementById("globalPreviewPlayer");
+      player.src = `/api/voice-bank/sample/${voiceId}?t=` + Date.now();
+      player.play();
+    }
+
+    function toggleTunePanel(voiceId) {
+      const panel = document.getElementById(`tunePanel_${voiceId}`);
+      panel.classList.toggle("hidden");
+    }
+
+    async function testCustomTune(voiceId) {
+      const v = voiceBank.find(item => item.id === voiceId);
+      const rate = document.getElementById(`rateVal_${voiceId}`).innerText;
+      const pitch = document.getElementById(`pitchVal_${voiceId}`).innerText;
+
+      try {
+        const res = await fetch("/api/voice-bank/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            voice_id: voiceId,
+            text: v.sample_text,
+            rate: rate,
+            pitch: pitch,
+            style: v.style
+          })
+        });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const player = document.getElementById("globalPreviewPlayer");
+        player.src = url;
+        player.play();
+      } catch (err) {
+        alert("테스트 실패: " + err);
+      }
+    }
+
+    async function saveVoiceTune(voiceId) {
+      const rate = document.getElementById(`rateVal_${voiceId}`).innerText;
+      const pitch = document.getElementById(`pitchVal_${voiceId}`).innerText;
+      const v = voiceBank.find(item => item.id === voiceId);
+
+      const res = await fetch("/api/voice-bank/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voice_id: voiceId, rate, pitch, style: v.style })
+      });
+      if (res.ok) {
+        alert("✓ 성우 설정이 성공적으로 저장되었습니다!");
+        loadVoiceBank();
+      }
+    }
+
+    // 대본 스튜디오 로직
+    async function fetchProject() {
+      try {
+        const res = await fetch("/api/project");
+        const data = await res.json();
+        if (data.has_project) {
+          currentProject = data.project;
+          activeVoices = data.active_voices;
+          renderProject();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderProject() {
+      if (!currentProject) return;
+
+      document.getElementById("projectTitle").innerText = currentProject.title;
+      document.getElementById("sectionCountBadge").innerText = `총 ${currentProject.total_sections}개 섹션`;
+
+      // 1. 캐릭터 매칭 그리드
+      const charGrid = document.getElementById("characterGrid");
+      charGrid.innerHTML = "";
+
+      const chars = Object.keys(currentProject.character_catalog || {});
+      document.getElementById("charCountBadge").innerText = `인물 ${chars.length}명 매칭됨`;
+
+      chars.forEach(charName => {
+        const isNarration = charName === "내레이션";
+        const card = document.createElement("div");
+        card.className = `p-4 rounded-xl border ${isNarration ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-200' : 'bg-slate-50 border-slate-200'}`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-sm text-slate-800">${isNarration ? '⭐ ' : ''}${charName}</span>
+            <span class="text-[10px] text-slate-400">대본 캐릭터</span>
+          </div>
+          <div class="mt-2">
+            <label class="text-[11px] font-semibold text-slate-500 block mb-1">배정된 성우 선택:</label>
+            <select onchange="assignVoice('${charName}', this.value)" class="w-full text-xs p-2 rounded-lg border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-indigo-300">
+              ${voiceBank.map(v => `
+                <option value="${v.id}" ${(isNarration && v.id === 'NARRATION_SONGSEAH') || (charName === '김병수' && v.id === 'SENIOR_MALE_EVIL') || (charName === '이정희' && v.id === 'SENIOR_FEMALE_GOOD') || (charName === '최윤지' && v.id === 'YOUNG_FEMALE_GOOD') || (charName === '김태호' && v.id === 'MIDDLE_MALE_EVIL') ? 'selected' : ''}>
+                  [${v.category} ${v.role_type}] ${v.name}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+        `;
+        charGrid.appendChild(card);
+      });
+
+      // 2. 섹션 리스트
+      const secList = document.getElementById("sectionList");
+      secList.innerHTML = "";
+
+      currentProject.sections.forEach(sec => {
+        const secDiv = document.createElement("div");
+        secDiv.className = "border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm";
+
+        secDiv.innerHTML = `
+          <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="w-8 h-8 rounded-lg bg-slate-800 text-white font-bold text-xs flex items-center justify-center">
+                ${sec.section_id}
+              </span>
+              <div>
+                <h3 class="font-bold text-sm text-slate-800">섹션 ${sec.section_id} – ${sec.section_title}</h3>
+                <p class="text-xs text-slate-500">대사/지문 ${sec.total_utterances}개</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="togglePreview(${sec.section_id})" class="text-xs bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-medium transition">
+                <i class="fa-solid fa-align-left"></i> 대본 보기
+              </button>
+              <button onclick="generateSection(${sec.section_id})" id="genBtn_${sec.section_id}" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3.5 py-1.5 rounded-lg font-semibold shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-solid fa-volume-high"></i> 섹션 MP3 생성
+              </button>
+            </div>
+          </div>
+
+          <div id="resultArea_${sec.section_id}" class="hidden p-4 bg-emerald-50/60 border-b border-emerald-200 flex flex-col md:flex-row items-center justify-between gap-3">
+            <audio id="audio_${sec.section_id}" controls class="h-9 w-full md:w-72"></audio>
+            <div class="flex items-center gap-2">
+              <a id="mp3Down_${sec.section_id}" download class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
+                <i class="fa-solid fa-download"></i> MP3 다운로드
+              </a>
+              <a id="srtDown_${sec.section_id}" download class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
+                <i class="fa-solid fa-closed-captioning"></i> SRT 자막 다운로드
+              </a>
+            </div>
+          </div>
+
+          <div id="previewArea_${sec.section_id}" class="hidden p-4 bg-slate-50/30 max-h-60 overflow-y-auto scrollbar-thin text-xs space-y-2">
+            ${sec.utterances.map(u => `
+              <div class="p-2 rounded bg-white border border-slate-100">
+                <span class="font-bold text-rose-600">[${u.speaker}]</span>
+                <span class="text-slate-700">${u.text}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        secList.appendChild(secDiv);
+      });
+    }
+
+    async function assignVoice(charName, voiceId) {
+      await fetch("/api/characters/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ character_name: charName, voice_id: voiceId })
+      });
+    }
+
+    function togglePreview(secId) {
+      document.getElementById(`previewArea_${secId}`).classList.toggle("hidden");
+    }
+
+    async function generateSection(secId) {
+      const btn = document.getElementById(`genBtn_${secId}`);
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 생성 중...`;
+
+      try {
+        const res = await fetch(`/api/generate/section/${secId}`, { method: "POST" });
+        const data = await res.json();
+        if (res.ok) {
+          const resArea = document.getElementById(`resultArea_${secId}`);
+          document.getElementById(`audio_${secId}`).src = data.result.mp3_url;
+          document.getElementById(`mp3Down_${secId}`).href = data.result.mp3_url;
+          document.getElementById(`srtDown_${secId}`).href = data.result.srt_url;
+          resArea.classList.remove("hidden");
+          btn.innerHTML = `<i class="fa-solid fa-check text-emerald-500"></i> 생성 완료`;
+        } else {
+          throw new Error(data.detail);
+        }
+      } catch (err) {
+        alert("오류: " + err.message);
+        btn.innerHTML = orig;
+        btn.disabled = false;
+      }
+    }
+
+    async function generateAllSections() {
+      if (!currentProject) return;
+      if (!confirm(`총 ${currentProject.total_sections}개 섹션을 순차적으로 자동 생성하시겠습니까?`)) return;
+      for (const sec of currentProject.sections) {
+        await generateSection(sec.section_id);
+      }
+      alert("🎉 모든 섹션 생성이 완료되었습니다!");
+    }
+
+    function setupFileInputs() {
+      const scriptInput = document.getElementById("scriptFileInput");
+      const synopsisInput = document.getElementById("synopsisFileInput");
+      scriptInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) {
+          document.getElementById("scriptFileName").innerText = e.target.files[0].name;
+          document.getElementById("scriptFileName").classList.add("text-rose-600", "font-bold");
+        }
+      });
+      synopsisInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) {
+          document.getElementById("synopsisFileName").innerText = e.target.files[0].name;
+          document.getElementById("synopsisFileName").classList.add("text-amber-600", "font-bold");
+        }
+      });
+    }
+
+    function loadSampleProject() {
+      fetchProject();
+      alert("✓ 샘플 대본이 로드되었습니다!");
+    }
+
+    async function connectColab() {
+      const url = document.getElementById("colabUrlInput").value.trim();
+      const badge = document.getElementById("colabBadge");
+      try {
+        const res = await fetch("/api/colab/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+        if (res.ok) {
+          badge.className = "flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold";
+          badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> <span>코랩 T4 GPU 연결됨</span>`;
+          alert("🎉 코랩 워커 연결 완료!");
+        }
+      } catch (err) {
+        alert("연결 실패: " + err);
+      }
+    }
+  </script>
+</body>
+</html>
