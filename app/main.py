@@ -151,17 +151,7 @@ async def test_custom_voice(req: VoiceTestRequest):
         meta = CURRENT_VOICE_BANK[0]
 
     voice = meta["voice"]
-    ssml = f"""<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='ko-KR'>
-    <voice name='{voice}'>
-        <mstts:express-as style='{req.style}' styledegree='1.5'>
-            <prosody pitch='{req.pitch}' rate='{req.rate}'>
-                {req.text}
-            </prosody>
-        </mstts:express-as>
-    </voice>
-</speak>"""
-
-    comm = edge_tts.Communicate(ssml, voice)
+    comm = edge_tts.Communicate(req.text, voice, rate=req.rate, pitch=req.pitch)
     stream = io.BytesIO()
     async for chunk in comm.stream():
         if chunk["type"] == "audio":
@@ -313,10 +303,9 @@ async def generate_single_audio_file(speaker: str, text: str, output_path: str):
         except Exception as e:
             print(f"Colab 생성 실패, 로컬 감정 모드 전환: {e}")
 
-    # 2. 로컬 무료 모드 (edge-tts 감정 SSML 직접 저장)
+    # 2. 로컬 무료 모드 (edge-tts 순수 파라미터 직접 저장)
     import edge_tts
-    # SSML을 직접 전송하여 극적인 호통/슬픔/송세아 톤 구현
-    comm = edge_tts.Communicate(emotion_cfg["ssml"], emotion_cfg["voice"])
+    comm = edge_tts.Communicate(text, emotion_cfg["voice"], rate=emotion_cfg["rate"], pitch=emotion_cfg["pitch"], volume=emotion_cfg["volume"])
     await comm.save(output_path)
     return output_path
 
